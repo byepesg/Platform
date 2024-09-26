@@ -1,14 +1,47 @@
 import AppLayout from '@/layout/AppLayout.vue';
-import Login from '@/views/pages/auth/Login.vue';
+import Landing from '@/views/pages/Landing.vue';
 import { createRouter, createWebHistory } from 'vue-router';
+
 
 const router = createRouter({
     history: createWebHistory(),
     routes: [
         {
             path: '/',
-            component: Login,
+            component: Landing,
         },
+        {
+            path: '/platform',
+            component: AppLayout,
+            children:[
+                {
+                    path: '/commercial',
+                    name: 'commercial',
+                    component: () => import('@/views/pages/MenuSideBar/Commercial.vue')
+                },
+                {
+                    path: '/queries',
+                    name: 'queries',
+                    component: () => import('@/views/pages/MenuSideBar/Queries.vue')
+                },
+                {
+                    path: '/instructor',
+                    name: 'instructor',
+                    component: () => import('@/views/pages/MenuSideBar/Instructor.vue')
+                },
+                {
+                    path: '/levels',
+                    name: 'levels',
+                    component: () => import('@/views/pages/MenuSideBar/Levels.vue')
+                },
+                {
+                    path: '/profiles',
+                    name: 'profiles',
+                    component: () => import('@/views/pages/MenuSideBar/Profiles.vue')
+                },
+            ]
+        },
+
         {
             path: '/main',
             component: AppLayout,

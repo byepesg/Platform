@@ -1,13 +1,152 @@
 <script setup>
 import FloatingConfigurator from '@/components/FloatingConfigurator.vue';
-import { ref } from 'vue';
+import useData from '@/service/FetchData/FetchDataAPI.js';
+import { useAbilityStore } from '@/stores/abilities';
+import { useCounterStore } from '@/stores/counter';
+import { toTypedSchema } from '@vee-validate/zod';
+import { storeToRefs } from 'pinia';
+import { useToast } from 'primevue/usetoast';
+import { useForm } from 'vee-validate';
+import { onMounted, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
+import { useRouter } from 'vue-router';
+import { z } from 'zod';
+const store = useCounterStore()
+const abilityStore = useAbilityStore()
 
-const email = ref('');
-const password = ref('');
-const checked = ref(false);
+// `name` and `doubleCount` are reactive refs
+// This will also extract refs for properties added by plugins
+// but skip any action or non reactive (non ref/reactive) property
+const { name, doubleCount } = storeToRefs(store)
+// the increment action can just be destructured
+const { increment } = store
+
+
+const toast = useToast();
+const { t } = useI18n();
+const { getRequest, postRequest, putRequest, deleteRequest,errorResponseAPI } = useData();
+let endpoint = ref('/login');
+const token = ref('')
+const count = ref(0);
+const { values, errors, defineField } = useForm({
+    validationSchema: toTypedSchema(
+        z.object({
+            email: z.string().min(3).email(),
+            password: z.string().min(6)
+        })
+    )
+});
+const fetchInfoPostLogin = async (data) => {
+  try {
+    let response = await postRequest(endpoint.value, { email: email.value, password: password.value });
+    response = response.data.data;
+    if (response['error']) throw response.error;
+    if (!response['user']) throw response.error;
+
+    token.value = response.token;
+    const user = response.user.name;
+    sessionStorage.setItem('accessSessionToken', token.value);
+    sessionStorage.setItem('accessSessionUser', user);
+    localStorage.setItem('accesSessionUsers', user);
+    localStorage.setItem('accesSessionTokens', token);
+    console.log("data: ", response);
+    await getRequest('/abilities', token);
+    toast.add({ severity: 'success', detail: 'Success', content: 'Successful Login', id: count.value++ });
+    router.push('/main');
+    
+    return true;
+  } catch (error) {
+    toast.add({ severity: 'error', detail: 'Error Response', content: error, id: count.value++ });
+    console.error('Error:', error);
+    return false;
+  }
+};
+
+// const fetchAbilities = async () => {
+//   try {
+//     // Fetch the abilities from the API
+//     const response = await getRequest('/abilities');
+
+//     // Assuming the response contains an object with abilities in the "data" field
+//     const abilities = response.data;  // Adjust according to your API response structure
+
+//     console.log('Fetched Abilities:', abilities);
+
+//     // Use AbilityBuilder to define the abilities
+//     const { can, cannot, rules } = new AbilityBuilder();
+
+//     // Define abilities from the fetched data
+//     abilities.forEach(ability => {
+//       // Assuming the ability contains `action` and `subject`
+//       can(ability);
+//     });
+
+//     // Update the global ability with the new rules
+//     ability.update(rules);
+
+//     //console.log('Updated Abilities:', rules);
+//   } catch (error) {
+//     console.error('Error fetching abilities:', error);
+//     throw error;
+//   }
+// };
+
+
+// const updateAbility = (token) => {
+//   const bearer = 'Bearer ' + token;
+
+// fetch('http://164.90.146.196:81/api/v1/abilities', {
+//     headers: {
+//         Authorization: bearer,
+//         accept: 'application/json'
+//     }
+// })
+//     .then((response) => response.json())
+//     .then((permissions) => {
+//         const { can, rules } = new AbilityBuilder();
+
+//         can(permissions);
+//         console.log(permissions)
+//         ability.update(rules);
+//         console.log(ability.can('rol_crear'))
+
+//     });
+// };
+const onSubmit = async () => {
+  const resp1 = await fetchInfoPostLogin();
+  if (resp1 == true)
+   {
+    if (token.value) {
+    // Fetch abilities using the token
+    const response = await getRequest('/abilities')
+    
+    abilityStore.fetchAbilities(response.data)
+  } else {
+    console.error('No token found in sessionStorage')
+  }
+    //await fetchAbilities();
+  } else {
+    console.log('Error')
+  }
+
+  
+  
+};
+
+onMounted(() => {
+
+});
+const [email, emailAttrs] = defineField('email');
+const [password, passwordAttrs] = defineField('password');
+const router = useRouter();
 </script>
 
 <template>
+<div>
+    <label>Increment {{ doubleCount }}</label>
+    <Button label="Increment" class="w-full p-3 text-xl" @click="increment"></Button>
+</div>
+  
     <FloatingConfigurator />
     <div class="bg-surface-50 dark:bg-surface-950 flex items-center justify-center min-h-screen min-w-[100vw] overflow-hidden">
         <div class="flex flex-col items-center justify-center">
@@ -49,7 +188,8 @@ const checked = ref(false);
                             </div>
                             <span class="font-medium no-underline ml-2 text-right cursor-pointer text-primary">Forgot password?</span>
                         </div>
-                        <Button label="Sign In" class="w-full" as="router-link" to="/"></Button>
+                        
+                        <Button label="Sign In" class="w-full p-3 text-xl" @click="onSubmit"></Button>
                     </div>
                 </div>
             </div>

@@ -1,4 +1,5 @@
-import useSettingsAPI from '@/composables/DataAPI/settings_API';
+// Objetivo: Crear un hook para realizar peticiones a la API
+import useSettingsAPI from '@/service/FetchData/API_Settings';
 import { ref } from 'vue';
 export default function useData() {
     const { pathAPI, APISettings } = useSettingsAPI();
@@ -12,7 +13,9 @@ export default function useData() {
         token.value = sessionStorage.getItem('accessSessionToken');
         if (token.value) {
             APISettings.headers.set('Authorization', 'Bearer ' + token.value);
+            
         }
+
     };
 
     initializeToken();

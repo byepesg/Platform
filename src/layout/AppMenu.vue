@@ -1,12 +1,25 @@
 <script setup>
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 
+import { useI18n } from 'vue-i18n';
 import AppMenuItem from './AppMenuItem.vue';
+const { t } = useI18n();
 
 const model = ref([
     {
         label: 'Home',
-        items: [{ label: 'Dashboard', icon: 'pi pi-fw pi-home', to: '/' }]
+        items: [{ label: computed(() => t('menu.dashboard')), icon: 'pi pi-fw pi-home', to: '/' }]
+    },
+
+    {
+    label: 'Platform',
+    items: [
+        { label: computed(() => t('menu.commercial.menu_title')), icon: 'pi pi-fw pi-home', to: '/commercial' },
+        { label: computed(() => t('menu.queries')), icon: 'pi pi-fw pi-home', to: '/queries' },
+        { label: computed(() => t('menu.instructor')), icon: 'pi pi-fw pi-home', to: '/instructor' },
+        { label: computed(() => t('menu.levels')), icon: 'pi pi-fw pi-home', to: '/levels' },
+        { label: computed(() => t('menu.profiles')), icon: 'pi pi-fw pi-home', to: '/profiles' }
+    ]
     },
     {
         label: 'UI Components',
