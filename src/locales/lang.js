@@ -4,15 +4,31 @@ export const messages = {
         menu: {
             home: 'Home',
             dashboard: 'Dashboard',
-            platform: 'Platform',
+            platform: {
+                menu_title:'Platform',
+                page_title:'Platform'
+            },
+
             commercial: {
                 menu_title:'Commercial',
                 page_title:'Commercial Information'
             },
-            queries: 'Queries',
-            instructor: 'Instructor',
-            levels: 'Levels',
-            profiles: 'Profiles',
+            queries:{
+                menu_title:'Queries',
+                page_title:'Queries'
+            },
+            instructor: {
+                menu_title:'Instructor',
+                page_title:'Instructor'
+            },
+            levels:{
+                menu_title:'Levels',
+                page_title:'Levels'
+            },
+            profiles: {
+                menu_title:'Profiles',
+                page_title:'Profiles'
+            },
             uiComponents: 'UI Components',
             formLayout: 'Form Layout',
             input: 'Input',
@@ -55,14 +71,27 @@ export const messages = {
         menu: {
             home: 'Inicio',
             dashboard: 'Tablero',
-            platform: 'Plataforma',
+            platform: {
+                menu_title:'Plataforma',
+                page_title:'Plataforma'
+            },
             commercial: {
                 menu_title:'Comercial',
                 page_title:'Información Comercial'
             },
-            queries: 'Consultas',
-            instructor: 'Instructor',
-            levels: 'Niveles',
+            queries:{
+                menu_title:'Consultas',
+                page_title:'Consultas'
+            },
+            instructor: {
+                menu_title:'Instructor',
+                page_title:'Instructor'
+            },
+            levels:{
+                menu_title:'Niveles',
+                page_title:'Niveles'
+            },
+            
             profiles: 'Perfiles',
             uiComponents: 'Componentes UI',
             formLayout: 'Diseño de Formularios',

@@ -15,13 +15,13 @@
                 <div class="col-xs-12 col-sm-6 col-md-4 mb-2 text-center mx-auto">
             <Toolbar style="margin-bottom: 1rem">
                 <template #center>
-                    <Button :disabled="headerNames.length > 0" label="New" icon="pi pi-plus" class="p-button-success mb-2 mt-2" @click="openDialog('new')" size="large" />
+                    <Button :disabled="listRowSelect.length > 0" label="New" icon="pi pi-plus" class="p-button-success mb-2 mt-2" @click="openDialog('new')" size="large" />
                     <Divider layout="vertical" />
                     <Button :disabled="!(listRowSelect.length > 0 && listRowSelect.length < 2)" label="Edit" icon="pi pi-file-edit" class="p-button-help mb-2 mt-2" @click="openDialog('edit')" size="large" />
                     <Divider layout="vertical" />
                     <Button :disabled="!(listRowSelect.length > 0 && listRowSelect.length < 2)" label="Clone" icon="pi pi-copy" class="p-button-secondary mb-2 mt-2" @click="openDialog('clone')" size="large" />
                     <Divider layout="vertical" />
-                    <Button :disabled="headerNames.length > 0" label="Export" icon="pi pi-file-import" class="p-button-warning mb-2 mt-2" @click="openExport" size="large" />
+                    <Button :disabled="listRowSelect.length > 0" label="Export" icon="pi pi-file-import" class="p-button-warning mb-2 mt-2" @click="openExport" size="large" />
                     <Divider layout="vertical" />
                     <Button :disabled="!listRowSelect.length > 0" label="Delete" icon="pi pi-trash" class="p-button-danger mb-2 mt-2" @click="openDelete" size="large" />
                 </template>
@@ -247,25 +247,27 @@ const documentFrozen = ref(false); change name field
 <DataTable id="tblData"
      -->
 <script setup>
-import useData from '@/service/FetchData/FetchDataAPI.js';
-import { FilterMatchMode, FilterOperator } from '@primevue/core/api';
-import { toTypedSchema } from '@vee-validate/zod';
-// import { saveAs } from 'file-saver';
 import BackendErrors from '@/layout/composables/Errors/BackendErrors.vue';
 import FrontEndErrors from '@/layout/composables/Errors/FrontendErrors.vue';
 import ability from '@/service/ability.js';
+import { CrudService } from '@/service/CRUD/CrudService';
 import { InitialDataService } from '@/service/initialData';
+import { FilterMatchMode, FilterOperator } from '@primevue/core/api';
+import { toTypedSchema } from '@vee-validate/zod';
+// import { saveAs } from 'file-saver/dist/FileSaver';
 import { useToast } from 'primevue/usetoast';
 import { useForm } from 'vee-validate';
-import { onBeforeMount, onMounted, provide, ref, watch } from 'vue';
+import { onBeforeMount, onMounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import * as XLSX from 'xlsx';
 import { z } from 'zod';
 const { t } = useI18n();
-const { getRequest, postRequest, putRequest, deleteRequest,errorResponseAPI } = useData();
+
 
 const prueba = ref({revisar: 'revisar GET-POST-PUT-DELETE'});
-
+let endpoint = ref('/variants');  //replace endpoint with your endpoint
+const crudService = CrudService(endpoint.value);
+const errorResponseAPI = crudService.getErrorResponse();
 const dataFromComponent = ref();
 const Farms = ref([]);
 const farms = ref([]);
@@ -273,52 +275,25 @@ const Compan = ref([]);
 const compa = ref([]);
 const farmDefault = sessionStorage.getItem('accessSessionFarm');
 const companyDefault = sessionStorage.getItem('accessSessionCompany');
-
-const formDialogNew = ref(false);
-
 const formDialogExportTitle = 'Export xxxxxxxxxx';
 const formDialogDeleteTitle = 'Delete xxxxxxxxxx';
-const formDialogEdit = ref(false);
-const formDialogClone = ref(false);
 const formDialogExport = ref(false);
 const formDialogDelete = ref(false);
 const toast = useToast();
 const filename = ref('table');
-const isChanging = ref(false);
-let endpoint = ref('/variants');  //replace endpoint with your endpoint
 
-
-////////////
- //Form here
- ////////////   
-//const size = ref({ label: 'Normal', value: 'normal' });
-// const sizeOptions = ref([
-//     { label: 'Small', value: 'small', class: 'sm' },
-//     { label: 'Normal', value: 'normal' },
-//     { label: 'Large', value: 'large', class: 'lg' }
-// ]);
 let size = ref()
-
 let sizeOptions = ref()
 
 onMounted(() => {
-    // Fetch size data
-    InitialDataService.getSize().then((data) => {
-        size.value = data;
-        console.log('Size:', size.value); // Check if data is fetched
-    });
 
-    // Fetch size options
-    InitialDataService.getSizeOptions().then((data) => {
-        sizeOptions.value = data;
-        console.log('Size Options:', sizeOptions.value); // Check if data is fetched
-    });
 });
 
 onBeforeMount(() => {
    
     readAll();
     initFilters();
+
 });
 const listRowSelect = ref([]);
 const loading = ref(false);
@@ -327,10 +302,8 @@ const RowSelect = (data) => {
 };
 watch(listRowSelect, RowSelect);
 const onRowSelect = (data) => {
-    
     listRowSelect.value = data;
     //assignValues(mode.value)
-    
 };
 
 watch(listRowSelect, onRowSelect);
@@ -359,17 +332,22 @@ const initFilters = () => {
 const documentFrozen = ref(false);
 const readAll = async () => {
     loadingData();
-    const respFarms = await getRequest('/farms');
+    
+    InitialDataService.getSize().then((data) => {size.value = data;});
+    InitialDataService.getSizeOptions().then((data) => {sizeOptions.value = data; });
+
+    const respFarms = await InitialDataService.getBranches();
     if (!respFarms.ok) toast.add({ severity: 'error', detail: 'Error' + respFarms.error, life: 3000 });
     Farms.value = respFarms.data.data.map((farm) => ({ id: farm.uuid, name: farm.name }));
 
-    const respCompan = await getRequest('/companies');
+    const respCompan = await InitialDataService.getCompanies();
     if (!respCompan.ok) toast.add({ severity: 'error', detail: 'Error' + respCompan.error, life: 3000 });
     Compan.value = respCompan.data.data.map((comp) => ({ id: comp.uuid, name: comp.name }));
 
 };
 const loadingData = async () => {
-    const response = await getRequest(endpoint.value);
+    //const response = await getRequest(endpoint.value);
+    const response = await crudService.getAll();
     if (!response.ok) toast.add({ severity: 'error', detail: 'Error' + response.error, life: 3000 });
     dataFromComponent.value = response.data.data;
 };
@@ -377,12 +355,7 @@ watch(
     () => dataFromComponent.value,
     (newValue, oldValue) => {}
 );
-watch(
-    () => isChanging.value,
-    (newValue, oldValue) => {
-        readAll(endpoint.value);
-    }
-);
+
 const {
     handleSubmit: handleSubmitNew,
     errors: errorsNew,
@@ -419,9 +392,6 @@ const format = ref({ name: 'CSV' });
 const exportAll = ref({ name: 'ALL' });
 const selectedRegisters = ref([]);
 
-let headerNames = ref([]);
-provide('isChanging', isChanging);
-
 
 const formDialogTitle = ref('');
 const formDialog = ref(false);
@@ -430,35 +400,27 @@ const state = ref('');
 
 
 const openDialog = (mode) => {
-    console.log(mode)
-    if (mode=='new')
-        {
-            console.log('entre')
-            formDialogTitle.value = 'Create new register';        
-            resetForm();
-        }
-    else
-    {
-        if(mode=='edit') formDialogTitle.value = 'Edit new register';
-        else if(mode=='clone') formDialogTitle.value = 'Clone new register'
+    formDialogTitle.value = 
+        mode === 'new' ? 'Create new register' :
+        mode === 'edit' ? 'Edit new register' : 'Clone new register';
 
-        if (listRowSelect.value.length < 1) {
-            console.log(listRowSelect.value)
-            toast.add({ severity: 'error', summary: 'Error', detail: 'Select a record', life: 3000 });
-            //return
-        }
-        else{
-            const { code, company: empresa, farm: farmParameter, name: nombre } = listRowSelect.value[0];
-            name.value = nombre;
-            codeV.value = code;
-            company.value = { id: empresa.uuid, name: empresa.name };
-            farm.value = { id: farmParameter.uuid, name: farmParameter.name };
-        }
-
+    if (mode === 'new') {
+        resetForm();
+    } else if (listRowSelect.value.length < 1) {
+        toast.add({ severity: 'error', summary: 'Error', detail: 'Select a record', life: 3000 });
+        return;
+    } else {
+        const { code, company: empresa, farm: farmParameter, name: nombre } = listRowSelect.value[0];
+        name.value = nombre;
+        codeV.value = code;
+        company.value = { id: empresa.uuid, name: empresa.name };
+        farm.value = { id: farmParameter.uuid, name: farmParameter.name };
     }
+
     formDialog.value = true;
     state.value = mode;
 };
+
 
 const openExport = () => {
     format.value = { name: 'CSV' };
@@ -469,98 +431,54 @@ const openDelete = () => {
     formDialogDelete.value = true;
 };
 
+
 const actionRecordManager = handleSubmitNew(async (values) => {
+    const responseCRUD = ref();
+    const data = {
+        code: values.codeV,
+        name: values.name,
+        company_uuid: values.company ? values.company.id : companyDefault,
+        farm_uuid: values.farm ? values.farm.id : farmDefault
+    };
+
+    // Verifica si es un nuevo registro o si es edición/duplicado
     if (state.value === 'new') {
-        await createRecord(values);
-    } else if (state.value === 'edit') {
-        await EditRecord(values);
-    } else if (state.value === 'clone') {
-        await CloneRecord(values);
+        responseCRUD.value = await crudService.create(data);
+    } else {
+        const { uuid } = listRowSelect.value[0];
+        responseCRUD.value = state.value === 'edit' 
+            ? await crudService.update(uuid, data) 
+            : await crudService.create(data);
     }
-});
 
+    // Mostrar notificación y cerrar el diálogo si la operación fue exitosa
+    toast.add({ 
+        severity: responseCRUD.value.ok ? 'success' : 'error', 
+        summary: state.value, 
+        detail: responseCRUD.value.ok ? 'Done' : responseCRUD.value.error, 
+        life: 3000 
+    });
 
-const createRecord = handleSubmitNew(async (values) => {
-    const data = {
-        code: values.codeV,
-        name: values.name,
-        company_uuid: values.company ? values.company.id : companyDefault,
-        farm_uuid: values.farm ? values.farm.id : farmDefault
-    };
-    const restp = await postRequest(endpoint.value, data);
-
-    toast.add({ severity: restp.ok ? 'success' : 'error', summary: 'Create', detail: restp.ok ? 'Creado' : restp.error, life: 3000 });
-    loadingData();
-    formDialog.value = false;
-});
-
-
-const EditRecord = handleSubmitNew(async (values) => {
-    const { uuid } = listRowSelect.value[0];
-    const data = {
-        code: values.codeV,
-        name: values.name,
-        company_uuid: values.company ? values.company.id : companyDefault,
-        farm_uuid: values.farm ? values.farm.id : farmDefault
-    };
-    
-    const restp = await putRequest(endpoint.value, data, uuid);
-    toast.add({ severity: restp.ok ? 'success' : 'error', summary: 'Edit', detail: restp.ok ? 'Editado' : restp.error, life: 3000 });
-    loadingData();
-    
-    if (restp.ok) {
+    if (responseCRUD.value.ok) {
         formDialog.value = false;
         listRowSelect.value = [];
         selectedRegisters.value = [];
     }
-});
 
-const CloneRecord = handleSubmitNew(async (values) => {
-    const data = {
-        code: values.codeV,
-        name: values.name,
-        company_uuid: values.company ? values.company.id : companyDefault,
-        farm_uuid: values.farm ? values.farm.id : farmDefault
-    };
-    const restp = await postRequest(endpoint.value, data);
-    toast.add({ severity: restp.ok ? 'success' : 'error', summary: 'Clone', detail: restp.ok ? 'Clonado' : restp.error, life: 3000 });
+    // Recargar datos
     loadingData();
-    if (restp.ok) {
-        formDialog.value = false;
-        listRowSelect.value = [];
-        selectedRegisters.value = [];
-    }
 });
 
-const searchCompannies = (event) => {
-    setTimeout(() => {
-        if (!event.query.trim().length) {
-            compa.value = [...Compan.value];
-        } else {
-            compa.value = Compan.value.filter((fram) => {
-                return fram.name.toLowerCase().startsWith(event.query.toLowerCase());
-            });
-        }
-    }, 200);
-};
-const searchFarms = (event) => {
-    setTimeout(() => {
-        if (!event.query.trim().length) {
-            farms.value = [...Farms.value];
-        } else {
-            farms.value = Farms.value.filter((fram) => {
-                return fram.name.toLowerCase().startsWith(event.query.toLowerCase());
-            });
-        }
-    }, 200);
-};
+
 const DeleteRecord = async () => {
     formDialogDelete.value = false;
 
     try {
         const deletePromises = [];
         listRowSelect.value.forEach(async (item) => {
-            const deletePromise = await deleteRequest(endpoint.value, item.uuid);
+            //const deletePromise = await deleteRequest(endpoint.value, item.uuid);
+            const deletePromise = await crudService.delete(item.uuid);
+            
             deletePromises.push(deletePromise);
         });
         await Promise.all(deletePromises);
@@ -573,7 +491,6 @@ const DeleteRecord = async () => {
         listRowSelect.value = [];
     }
 };
-
 
 const ExportRecord = () => {
     const eventos = exportAll.value.name == 'ALL' ? dataFromComponent.value.map((data) => data) : listRowSelect.value.map((data) => data);
@@ -615,6 +532,30 @@ const remove = (aver) => {
         listRowSelect.value.splice(index, 1);
     }
 };
+
+const searchCompannies = (event) => {
+    setTimeout(() => {
+        if (!event.query.trim().length) {
+            compa.value = [...Compan.value];
+        } else {
+            compa.value = Compan.value.filter((fram) => {
+                return fram.name.toLowerCase().startsWith(event.query.toLowerCase());
+            });
+        }
+    }, 200);
+};
+const searchFarms = (event) => {
+    setTimeout(() => {
+        if (!event.query.trim().length) {
+            farms.value = [...Farms.value];
+        } else {
+            farms.value = Farms.value.filter((fram) => {
+                return fram.name.toLowerCase().startsWith(event.query.toLowerCase());
+            });
+        }
+    }, 200);
+};
+
 </script>
 
 <style lang="scss" scoped>

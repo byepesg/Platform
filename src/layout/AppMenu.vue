@@ -15,10 +15,10 @@ const model = ref([
     label: 'Platform',
     items: [
         { label: computed(() => t('menu.commercial.menu_title')), icon: 'pi pi-fw pi-home', to: '/commercial' },
-        { label: computed(() => t('menu.queries')), icon: 'pi pi-fw pi-home', to: '/queries' },
-        { label: computed(() => t('menu.instructor')), icon: 'pi pi-fw pi-home', to: '/instructor' },
-        { label: computed(() => t('menu.levels')), icon: 'pi pi-fw pi-home', to: '/levels' },
-        { label: computed(() => t('menu.profiles')), icon: 'pi pi-fw pi-home', to: '/profiles' }
+        { label: computed(() => t('menu.queries.menu_title')), icon: 'pi pi-fw pi-home', to: '/queries' },
+        { label: computed(() => t('menu.instructor.menu_title')), icon: 'pi pi-fw pi-home', to: '/instructor' },
+        { label: computed(() => t('menu.levels.menu_title')), icon: 'pi pi-fw pi-home', to: '/levels' },
+        { label: computed(() => t('menu.profiles.menu_title')), icon: 'pi pi-fw pi-home', to: '/profiles' }
     ]
     },
     {
