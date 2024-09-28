@@ -8,7 +8,7 @@ const { t } = useI18n();
 const model = ref([
     {
         label: 'Home',
-        items: [{ label: computed(() => t('menu.dashboard')), icon: 'pi pi-fw pi-home', to: '/' }]
+        items: [{ label: computed(() => t('menu.dashboard')), icon: 'pi pi-fw pi-home', to: '/dashboard' }]
     },
 
     {

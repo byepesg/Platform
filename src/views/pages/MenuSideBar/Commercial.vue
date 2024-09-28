@@ -17,9 +17,9 @@
                 <template #center>
                     <Button :disabled="headerNames.length > 0" label="New" icon="pi pi-plus" class="p-button-success mb-2 mt-2" @click="openDialog('new')" size="large" />
                     <Divider layout="vertical" />
-                    <Button :disabled="(listRowSelect.length > 0 && listRowSelect.length < 2)" label="Edit" icon="pi pi-file-edit" class="p-button-help mb-2 mt-2" @click="openDialog('edit')" size="large" />
+                    <Button :disabled="!(listRowSelect.length > 0 && listRowSelect.length < 2)" label="Edit" icon="pi pi-file-edit" class="p-button-help mb-2 mt-2" @click="openDialog('edit')" size="large" />
                     <Divider layout="vertical" />
-                    <Button :disabled="(listRowSelect.length > 0 && listRowSelect.length < 2)" label="Clone" icon="pi pi-copy" class="p-button-secondary mb-2 mt-2" @click="openDialog('clone')" size="large" />
+                    <Button :disabled="!(listRowSelect.length > 0 && listRowSelect.length < 2)" label="Clone" icon="pi pi-copy" class="p-button-secondary mb-2 mt-2" @click="openDialog('clone')" size="large" />
                     <Divider layout="vertical" />
                     <Button :disabled="headerNames.length > 0" label="Export" icon="pi pi-file-import" class="p-button-warning mb-2 mt-2" @click="openExport" size="large" />
                     <Divider layout="vertical" />
@@ -45,10 +45,11 @@
         :paginator="true"
         :rows="50"
         :rowsPerPageOptions="[5, 10, 20, 50]"
-        :class="`p-datatable-${size.class}`"
-        
+        :class="`p-datatable-${size?.class || 'default-size'}`" 
+        @row-select="onRowSelect(listRowSelect)"
+        @row-unselect="onRowSelect(listRowSelect)"
         @select-all-change="onSelectAllChange"
-        v-model:selection="selectedRegisters"
+        v-model:selection="listRowSelect"
         filterDisplay="menu"
         v-model:filters="filters"
         :globalFilterFields="['name', 'company.name', 'farm.name', 'status.name', 'created_at', 'updated_at']" 
@@ -148,42 +149,44 @@
 
         </DataTable>
         <Dialog v-model:visible="formDialog" modal :header="formDialogTitle" class="p-fluid text-center mx-auto">
-                <div class="mb-3">
-                    <div class="flex align-items-center gap-3 mb-1">
-                        <label for="username" class="font-semibold w-6rem">Name :</label>
-                        <InputText id="username" v-model="name" class="flex-auto" autocomplete="off" v-bind="nameProps" />
-                    </div>
-                    <small id="username-help" :class="{ 'p-invalid text-red-700': errorsNew['name'] }">
-                        {{ errorsNew.name }}
-                    </small>
-                </div>
-                <div class="mb-3">
-                    <div class="flex align-items-center gap-3 mb-1">
-                        <label for="username" class="font-semibold w-6rem">Code :</label>
-                        <InputText id="username" v-model="codeV" class="flex-auto" autocomplete="off" v-bind="codeVProps" />
-                    </div>
-                    <small id="username-help" :class="{ 'p-invalid text-red-700': errorsNew['codeV'] }">
-                        {{ errorsNew.codeV }}
-                    </small>
-                </div>
-                <div class="mb-3">
-                    <div class="flex align-items-center">
-                        <label for="username" class="font-semibold w-3">Farm :</label>
-                        <AutoComplete v-model="farm" inputId="ac" :suggestions="farms" @complete="searchFarms" field="name" dropdown />
-                    </div>
-                    <small id="username-help" :class="{ 'p-invalid text-red-700': errorsNew['farm'] }">
-                        {{ errorsNew.farm }}
-                    </small>
-                </div>
-                <div class="mb-3">
-                    <div class="flex align-items-center">
-                        <label for="username" class="font-semibold w-3">Companny:</label>
-                        <AutoComplete v-model="company" inputId="ac" :suggestions="compa" @complete="searchCompannies" field="name" dropdown />
-                    </div>
-                    <small id="username-help" :class="{ 'p-invalid text-red-700': errorsNew['company'] }">
-                        {{ errorsNew.company }}
-                    </small>
-                </div>
+
+                                    <div class="grid">
+                                        <div class="mb-3 col-12 md:col-6 lg:col-6">
+                                            <div class="flex align-items-center">
+                                            <label for="username" class="font-semibold w-6rem">Name :</label>
+                                            <InputText id="username" v-model="name" class="flex-auto" autocomplete="off" v-bind="nameProps" />
+                                        </div>
+                                        <FrontEndErrors :errorsNew="errorsNew" name="name" />
+                                        <BackendErrors :name="errorResponseAPI?.errors?.code" />
+                                    </div>
+
+                                    <div class="mb-3 col-12 md:col-6 lg:col-6">
+                                        <div class="flex align-items-center">
+                                            <label for="username" class="font-semibold w-6rem">Code :</label>
+                                            <InputText id="username" v-model="codeV" class="flex-auto" autocomplete="off" v-bind="codeVProps" />
+                                        </div>
+                                        <FrontEndErrors :errorsNew="errorsNew" name="codeV" />
+                                        <BackendErrors :name="errorResponseAPI?.errors?.code" />
+                                    </div>
+
+                                    <div class="mb-3 col-12 md:col-6 lg:col-6">
+                                        <div class="flex align-items-center">
+                                            <label for="farm" class="font-semibold w-6rem">Farm :</label>
+                                            <AutoComplete v-model="farm" class="flex-auto" inputId="ac" :suggestions="farms" @complete="searchFarms" field="name" dropdown />
+                                        </div>
+                                        <FrontEndErrors :errorsNew="errorsNew" name="farm" />
+                                        <BackendErrors :name="errorResponseAPI?.errors?.farm_uuid" />
+                                    </div>
+
+                                    <div class="mb-3 col-12 md:col-6 lg:col-6">
+                                        <div class="flex align-items-center">
+                                            <label for="company" class="font-semibold w-6rem">Company:</label>
+                                            <AutoComplete v-model="company" class="flex-auto" inputId="ac" :suggestions="compa" @complete="searchCompannies" field="name" dropdown />
+                                        </div>
+                                        <FrontEndErrors :errorsNew="errorsNew" name="company" />
+                                        <BackendErrors :name="errorResponseAPI?.errors?.company_uuid" />
+                                    </div>
+                                </div>
 
                 <div class="flex justify-content-end gap-2">
                     <Button type="button" label="Cancel" severity="secondary" @click="formDialog = false" />
@@ -248,10 +251,13 @@ import useData from '@/service/FetchData/FetchDataAPI.js';
 import { FilterMatchMode, FilterOperator } from '@primevue/core/api';
 import { toTypedSchema } from '@vee-validate/zod';
 // import { saveAs } from 'file-saver';
+import BackendErrors from '@/layout/composables/Errors/BackendErrors.vue';
+import FrontEndErrors from '@/layout/composables/Errors/FrontendErrors.vue';
 import ability from '@/service/ability.js';
+import { InitialDataService } from '@/service/initialData';
 import { useToast } from 'primevue/usetoast';
 import { useForm } from 'vee-validate';
-import { onBeforeMount, provide, ref, watch } from 'vue';
+import { onBeforeMount, onMounted, provide, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import * as XLSX from 'xlsx';
 import { z } from 'zod';
@@ -279,27 +285,47 @@ const formDialogDelete = ref(false);
 const toast = useToast();
 const filename = ref('table');
 const isChanging = ref(false);
-let endpoint = ref('/endpoint');  //replace endpoint with your endpoint
+let endpoint = ref('/variants');  //replace endpoint with your endpoint
 
 
 ////////////
  //Form here
  ////////////   
-const size = ref({ label: 'Normal', value: 'normal' });
-const sizeOptions = ref([
-    { label: 'Small', value: 'small', class: 'sm' },
-    { label: 'Normal', value: 'normal' },
-    { label: 'Large', value: 'large', class: 'lg' }
-]);
+//const size = ref({ label: 'Normal', value: 'normal' });
+// const sizeOptions = ref([
+//     { label: 'Small', value: 'small', class: 'sm' },
+//     { label: 'Normal', value: 'normal' },
+//     { label: 'Large', value: 'large', class: 'lg' }
+// ]);
+let size = ref()
 
+let sizeOptions = ref()
 
+onMounted(() => {
+    // Fetch size data
+    InitialDataService.getSize().then((data) => {
+        size.value = data;
+        console.log('Size:', size.value); // Check if data is fetched
+    });
+
+    // Fetch size options
+    InitialDataService.getSizeOptions().then((data) => {
+        sizeOptions.value = data;
+        console.log('Size Options:', sizeOptions.value); // Check if data is fetched
+    });
+});
 
 onBeforeMount(() => {
+   
     readAll();
     initFilters();
 });
 const listRowSelect = ref([]);
 const loading = ref(false);
+const RowSelect = (data) => {
+    listRowSelect.value = data;
+};
+watch(listRowSelect, RowSelect);
 const onRowSelect = (data) => {
     
     listRowSelect.value = data;
@@ -333,6 +359,13 @@ const initFilters = () => {
 const documentFrozen = ref(false);
 const readAll = async () => {
     loadingData();
+    const respFarms = await getRequest('/farms');
+    if (!respFarms.ok) toast.add({ severity: 'error', detail: 'Error' + respFarms.error, life: 3000 });
+    Farms.value = respFarms.data.data.map((farm) => ({ id: farm.uuid, name: farm.name }));
+
+    const respCompan = await getRequest('/companies');
+    if (!respCompan.ok) toast.add({ severity: 'error', detail: 'Error' + respCompan.error, life: 3000 });
+    Compan.value = respCompan.data.data.map((comp) => ({ id: comp.uuid, name: comp.name }));
 
 };
 const loadingData = async () => {
@@ -355,7 +388,7 @@ const {
     errors: errorsNew,
     defineField,
     resetForm
-} = useForm({initialValues: { name: '', codeV: '', farm: '', company: '' },
+} = useForm({initialValues: { name: '', codeV: '',farm:{ id: '', name: '' }, company:{ id: '', name: '' }},
     validationSchema: toTypedSchema(
         z.object({
             name: z.string().min(4),
@@ -385,12 +418,10 @@ const optionsEsport = ref([{ name: 'ALL' }, { name: 'SELECTED' }]);
 const format = ref({ name: 'CSV' });
 const exportAll = ref({ name: 'ALL' });
 const selectedRegisters = ref([]);
-const RowSelect = (data) => {
-    listRowSelect.value = data;
-};
+
 let headerNames = ref([]);
 provide('isChanging', isChanging);
-watch(listRowSelect, RowSelect);
+
 
 const formDialogTitle = ref('');
 const formDialog = ref(false);
@@ -412,6 +443,7 @@ const openDialog = (mode) => {
         else if(mode=='clone') formDialogTitle.value = 'Clone new register'
 
         if (listRowSelect.value.length < 1) {
+            console.log(listRowSelect.value)
             toast.add({ severity: 'error', summary: 'Error', detail: 'Select a record', life: 3000 });
             //return
         }
@@ -475,7 +507,12 @@ const EditRecord = handleSubmitNew(async (values) => {
     const restp = await putRequest(endpoint.value, data, uuid);
     toast.add({ severity: restp.ok ? 'success' : 'error', summary: 'Edit', detail: restp.ok ? 'Editado' : restp.error, life: 3000 });
     loadingData();
-    formDialog.value = false;
+    
+    if (restp.ok) {
+        formDialog.value = false;
+        listRowSelect.value = [];
+        selectedRegisters.value = [];
+    }
 });
 
 const CloneRecord = handleSubmitNew(async (values) => {
@@ -488,7 +525,11 @@ const CloneRecord = handleSubmitNew(async (values) => {
     const restp = await postRequest(endpoint.value, data);
     toast.add({ severity: restp.ok ? 'success' : 'error', summary: 'Clone', detail: restp.ok ? 'Clonado' : restp.error, life: 3000 });
     loadingData();
-    formDialog.value = false;
+    if (restp.ok) {
+        formDialog.value = false;
+        listRowSelect.value = [];
+        selectedRegisters.value = [];
+    }
 });
 
 const searchCompannies = (event) => {

@@ -1,10 +1,12 @@
 <script setup>
 import { useLayout } from '@/layout/composables/layout';
+import useData from '@/service/FetchData/FetchDataAPI.js';
 import { ref, watch } from 'vue';
+import { useRouter } from 'vue-router';
 import AppConfigurator from './AppConfigurator.vue';
-
+const { getRequest, postRequest, putRequest, deleteRequest,errorResponseAPI } = useData();
 const { onMenuToggle, toggleDarkMode, isDarkTheme } = useLayout();
-
+const router = useRouter();
 //Elements for language change
 import { useI18n } from 'vue-i18n';
 
@@ -13,7 +15,15 @@ const countries = ref([
     { name: 'ES', code: 'ES', id: 'es' },
     { name: 'EN', code: 'US', id: 'en' }
 ]);
-
+const logout = async () => {
+    //await postRequest( '/logout',{});
+};
+const Exit = () => {
+    localStorage.clear();
+    sessionStorage.clear();
+    logout();
+    router.push('/auth/login');
+};
 const selectedCountry = ref();
 watch(selectedCountry, () => {
     if (locale.value != selectedCountry.value.id) locale.value = selectedCountry.value.id ?? 'en';
@@ -118,6 +128,10 @@ const toggleOverlayPanel2 = (event) => {
                     </template>
                 </Dropdown>
             </OverlayPanel>
+            <Button @click="Exit()" rounded outlined class="p-link layout-topbar-button">
+                <i class="pi pi-sign-out"></i>
+            </Button>
         </div>
+        
     </div>
 </template>

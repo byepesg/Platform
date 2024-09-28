@@ -1,11 +1,22 @@
 <script setup>
 
 import ability from '@/service/ability.js';
+console.log(ability)
+
 </script>
 <template>
     <div>
-        <h1 v-if="ability.can('vista_1')">Comercial</h1>
-        <pre>{{ ability }}</pre>
+        <h1 v-if="ability.can('vista_1')">Vista 1</h1>
+        <h1 v-if="ability.can('xxxx')">XXXX</h1>
+        <h1 v-if="ability.can('rol_crear','rol_crear')">Rol crear</h1>
+    </div>
+
+    <div>
+        
+        <div>{{ ability.rules }}</div>
+        
+        
+    <!-- <pre>{{ abilityStore.getAbilities }}</pre> -->
     </div>
 
 </template>

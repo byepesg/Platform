@@ -2,13 +2,12 @@ import { createApp } from 'vue';
 import App from './App.vue';
 import router from './router';
 
+import '@/assets/styles.scss';
+import '@/assets/tailwind.css';
 import Aura from '@primevue/themes/aura';
 import PrimeVue from 'primevue/config';
 import ConfirmationService from 'primevue/confirmationservice';
 import ToastService from 'primevue/toastservice';
-
-import '@/assets/styles.scss';
-import '@/assets/tailwind.css';
 /////////////////////////////////////////////////////////////////
 //Abilities
 import ability from '@/service/ability.js';
@@ -59,6 +58,30 @@ app.use(pinia)
 app.use(abilitiesPlugin, ability, { useGlobalProperties: true });
 app.provide('ability', ability);
 
+/////////////////////////////////////////////////////////////////
+// Fetch abilities on app initialization
+import { useAbilityStore } from '@/stores/abilities';
+import { AbilityBuilder } from '@casl/ability';
+const initializeAbilities = async () => {
+    console.log('Initializing abilities');
+    const abilityStore = useAbilityStore();
+    const { can, rules } = new AbilityBuilder();
+    const token = sessionStorage.getItem('accessSessionToken');
+    if (!token) {
+        return
+    } else {
+        console.log('Fetching abilities');
+        await abilityStore.fetchAbilities();
+        const abilities = abilityStore.getAbilities;
+       const { can, cannot, rules } = new AbilityBuilder();
+       abilities.forEach(({ action, subject }) => {
+       can(action, subject); 
+   });
+       ability.update(rules);
+    }
+};
+
+initializeAbilities(); 
 /////////////////////////////////////////////////////////////////
 //Language package using
 app.use(i18n);

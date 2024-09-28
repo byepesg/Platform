@@ -1,13 +1,16 @@
 <script setup>
 import FloatingConfigurator from '@/components/FloatingConfigurator.vue';
+import ability from '@/service/ability.js';
 import useData from '@/service/FetchData/FetchDataAPI.js';
 import { useAbilityStore } from '@/stores/abilities';
 import { useCounterStore } from '@/stores/counter';
+import { ensureTokenStored } from '@/utils/tokenUtils';
+import { AbilityBuilder } from '@casl/ability';
 import { toTypedSchema } from '@vee-validate/zod';
 import { storeToRefs } from 'pinia';
 import { useToast } from 'primevue/usetoast';
 import { useForm } from 'vee-validate';
-import { onMounted, ref } from 'vue';
+import { ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 import { z } from 'zod';
@@ -28,7 +31,7 @@ const { getRequest, postRequest, putRequest, deleteRequest,errorResponseAPI } = 
 let endpoint = ref('/login');
 const token = ref('')
 const count = ref(0);
-const { values, errors, defineField } = useForm({
+const { values, errors, defineField } = useForm({initialValues: { email: 'admin@agroonline.com', password: '!password!' },
     validationSchema: toTypedSchema(
         z.object({
             email: z.string().min(3).email(),
@@ -36,6 +39,10 @@ const { values, errors, defineField } = useForm({
         })
     )
 });
+
+
+
+  
 const fetchInfoPostLogin = async (data) => {
   try {
     let response = await postRequest(endpoint.value, { email: email.value, password: password.value });
@@ -44,13 +51,27 @@ const fetchInfoPostLogin = async (data) => {
     if (!response['user']) throw response.error;
 
     token.value = response.token;
+
     const user = response.user.name;
     sessionStorage.setItem('accessSessionToken', token.value);
     sessionStorage.setItem('accessSessionUser', user);
     localStorage.setItem('accesSessionUsers', user);
-    localStorage.setItem('accesSessionTokens', token);
-    console.log("data: ", response);
-    await getRequest('/abilities', token);
+    localStorage.setItem('accessSessionToken', token.value);
+    await ensureTokenStored();
+
+    if (!token.value) {
+    console.error('No token found in sessionStorage')
+    
+  } else {
+     await abilityStore.fetchAbilities();
+     const abilities = abilityStore.getAbilities;
+    const { can, cannot, rules } = new AbilityBuilder();
+    abilities.forEach(({ action, subject }) => {
+    can(action, subject); 
+});
+    ability.update(rules);
+  }
+    
     toast.add({ severity: 'success', detail: 'Success', content: 'Successful Login', id: count.value++ });
     router.push('/main');
     
@@ -112,30 +133,48 @@ const fetchInfoPostLogin = async (data) => {
 
 //     });
 // };
+
+
 const onSubmit = async () => {
-  const resp1 = await fetchInfoPostLogin();
-  if (resp1 == true)
-   {
-    if (token.value) {
-    // Fetch abilities using the token
-    const response = await getRequest('/abilities')
+    await fetchInfoPostLogin();
+//   const resp1 = await fetchInfoPostLogin();
+//   if (resp1 == true)
+//    {
+//     if (!token.value) {
+//     console.error('No token found in sessionStorage')
     
-    abilityStore.fetchAbilities(response.data)
-  } else {
-    console.error('No token found in sessionStorage')
-  }
-    //await fetchAbilities();
-  } else {
-    console.log('Error')
-  }
+//     ability.update([{ action: 'manage', subject: 'all' }]);
+    
+//   } else {
+// //     await abilityStore.fetchAbilities();
+// //     abilityStore.getAbilities.forEach(({ action, subject }) => {
+// //     ability.update([{ action, subject }]);
+// //     initializeAbilities();   
+// // });
+
+//     //await abilityStore.fetchAbilities();
+// // const { can, rules } = new AbilityBuilder();
+
+// // // Loop through each ability and define the permissions using `can`
+// // abilityStore.getAbilities.forEach(({ action, subject }) => {
+// //     can(action, subject); // Define the permission: action on subject
+// // });
+
+// // // Update the ability with the newly created rules
+// // ability.update(rules);
+
+// // console.log(ability);
+    
+//   }
+//     //await fetchAbilities();
+//   } else {
+//     console.log('Error')
+//   }
 
   
   
 };
 
-onMounted(() => {
-
-});
 const [email, emailAttrs] = defineField('email');
 const [password, passwordAttrs] = defineField('password');
 const router = useRouter();
@@ -176,10 +215,10 @@ const router = useRouter();
 
                     <div>
                         <label for="email1" class="block text-surface-900 dark:text-surface-0 text-xl font-medium mb-2">Email</label>
-                        <InputText id="email1" type="text" placeholder="Email address" class="w-full md:w-[30rem] mb-8" v-model="email" />
+                        <InputText id="email1" type="text" placeholder="Email address" class="w-full md:w-[30rem] mb-8" v-model="email" @keydown.enter="onSubmit"/>
 
                         <label for="password1" class="block text-surface-900 dark:text-surface-0 font-medium text-xl mb-2">Password</label>
-                        <Password id="password1" v-model="password" placeholder="Password" :toggleMask="true" class="mb-4" fluid :feedback="false"></Password>
+                        <Password id="password1" v-model="password" placeholder="Password" :toggleMask="true" class="mb-4" fluid :feedback="false" @keydown.enter="onSubmit"></Password>
 
                         <div class="flex items-center justify-between mt-2 mb-8 gap-8">
                             <div class="flex items-center">
