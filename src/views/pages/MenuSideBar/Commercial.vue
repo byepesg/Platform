@@ -52,7 +52,7 @@
         v-model:selection="listRowSelect"
         filterDisplay="menu"
         v-model:filters="filters"
-        :globalFilterFields="['name', 'company.name', 'farm.name', 'status.name', 'created_at', 'updated_at']" 
+        :globalFilterFields="globalFilter" 
         >
         <template #header>
             <!--Uncomment when filters are done-->
@@ -78,74 +78,18 @@
         <template #empty> No customers found. </template>
         <template #loading> Loading customers data. Please wait. </template>
         <Column selectionMode="multiple" headerStyle="width: 3rem"></Column>
-        <Column field="code" filterField="code" header="Code" sortable :frozen="documentFrozen"> <!--Replace :frozen with the model-->
-            <template #header>
+        <Column v-for="(col) in dynamicColumns" :key="col.field" :field="col.field" :header="col.header" :frozen="col.frozen || false" sortable>
+    <template v-if="col.frozen" #header>
                     <ToggleButton v-model="documentFrozen" onIcon="pi pi-lock" offIcon="pi pi-lock-open" onLabel="" offLabel="" />
+                    <div>&nbsp;</div>
                 </template>
-                <template #body="{ data }">
-                    {{ data.code }} 
-                </template>
-                <template #filter="{ filterModel }">
-                    <InputText v-model="filterModel.value" type="text" class="p-column-filter" :placeholder="$t('general.search')"  />
-                </template>
-        </Column>
-
-        <Column field="name" filterField="name" header="Name" sortable> 
-            
-                <template #body="{ data }">
-                    {{ data.name }} 
-                </template>
-                <template #filter="{ filterModel }">
-                    <InputText v-model="filterModel.value" type="text" class="p-column-filter" :placeholder="$t('general.search')" />
-                </template>
-        </Column>
-
-        <!--Here add other columns-->
-
-        <Column field="farmName" filterField="farm.name" header="Farm Name" sortable>
-                <template #body="{ data }">
-                    {{ data.farm.name }}
-                </template>
-                <template #filter="{ filterModel }">
-                    <InputText v-model="filterModel.value" type="text" class="p-column-filter" :placeholder="$t('general.search')" />
-                </template>
-            </Column>
-
-            <Column field="companyName" filterField="company.name" header="Company Name" sortable>
-                <template #body="{ data }">
-                    {{ data.company.name }}
-                </template>
-                <template #filter="{ filterModel }">
-                    <InputText v-model="filterModel.value" type="text" class="p-column-filter" :placeholder="$t('general.search')" />
-                </template>
-            </Column>
-
-            <Column field="createdAt" filterField="created_at" header="Creation date" sortable>
-                <template #body="{ data }">
-                    {{ data.created_at }}
-                </template>
-                <template #filter="{ filterModel }">
-                    <InputText v-model="filterModel.value" type="text" class="p-column-filter" :placeholder="$t('general.search')" />
-                </template>
-            </Column>
-
-            <Column field="updatedAt" filterField="updated_at" header="Modification date" sortable>
-                <template #body="{ data }">
-                    {{ data.updated_at }}
-                </template>
-                <template #filter="{ filterModel }">
-                    <InputText v-model="filterModel.value" type="text" class="p-column-filter" :placeholder="$t('general.search')" />
-                </template>
-            </Column>
-
-            <Column field="status" filterField="status.name" header="Status" sortable>
-                <template #body="{ data }">
-                    <Tag :value="data.status.name" :severity="'EFC88B'" />
-                </template>
-                <template #filter="{ filterModel }">
-                    <InputText v-model="filterModel.value" type="text" class="p-column-filter" :placeholder="$t('general.search')" />
-                </template>
-            </Column>
+    <template #body="{ data }">
+      {{ getNestedValue(data, col.field) }}
+    </template>
+    <template #filter="{ filterModel }">
+      <InputText v-model="filterModel.value" type="text" class="p-column-filter" :placeholder="'Search by ' + col.header" />
+    </template>
+  </Column>
 
         </DataTable>
         <Dialog v-model:visible="formDialog" modal :header="formDialogTitle" class="p-fluid text-center mx-auto">
@@ -172,25 +116,35 @@
                                     <div class="mb-3 col-12 md:col-6 lg:col-6">
                                         <div class="flex align-items-center">
                                             <label for="farm" class="font-semibold w-6rem">Farm :</label>
-                                            <AutoComplete v-model="farm" class="flex-auto" inputId="ac" :suggestions="farms" @complete="searchFarms" field="name" dropdown />
+                                            
+                                            <AutoComplete 
+                                            v-model="farmV"  
+                                            class="flex-auto"
+                                            :suggestions="farms" 
+                                            @complete="searchBranches" 
+                                            optionLabel="name"
+                                            placeholder="Introduce the value" 
+                                            dropdown 
+                                            />
+
                                         </div>
-                                        <FrontEndErrors :errorsNew="errorsNew" name="farm" />
+                                        <FrontEndErrors :errorsNew="errorsNew" name="farmV" />
                                         <BackendErrors :name="errorResponseAPI?.errors?.farm_uuid" />
                                     </div>
 
                                     <div class="mb-3 col-12 md:col-6 lg:col-6">
                                         <div class="flex align-items-center">
                                             <label for="company" class="font-semibold w-6rem">Company:</label>
-                                            <AutoComplete v-model="company" class="flex-auto" inputId="ac" :suggestions="compa" @complete="searchCompannies" field="name" dropdown />
+                                            <AutoComplete v-model="company" class="flex-auto" inputId="ac" :suggestions="compa" @complete="searchCompanies" optionLabel="name" dropdown />
                                         </div>
                                         <FrontEndErrors :errorsNew="errorsNew" name="company" />
                                         <BackendErrors :name="errorResponseAPI?.errors?.company_uuid" />
                                     </div>
                                 </div>
 
-                <div class="flex justify-content-end gap-2">
-                    <Button type="button" label="Cancel" severity="secondary" @click="formDialog = false" />
-                    <Button type="button" label="Save" @click="actionRecordManager(state)" />
+                <div class="flex justify-content-end gap-2 flex-auto">
+                    <Button class="flex-auto" type="button" label="Cancel" severity="secondary" @click="formDialog = false" />
+                    <Button class="flex-auto" type="button" label="Save" @click="actionRecordManager(state)" />
                 </div>
             </Dialog>
 
@@ -257,11 +211,24 @@ import { toTypedSchema } from '@vee-validate/zod';
 // import { saveAs } from 'file-saver/dist/FileSaver';
 import { useToast } from 'primevue/usetoast';
 import { useForm } from 'vee-validate';
-import { onBeforeMount, onMounted, ref, watch } from 'vue';
+import { computed, onBeforeMount, onMounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import * as XLSX from 'xlsx';
 import { z } from 'zod';
 const { t } = useI18n();
+const dynamicColumns = [
+  
+    { field: 'code', header: 'Code', frozen: true },
+    { field: 'name', header: 'Name', frozen: false },
+    { field: 'farm.name', header: 'Farm Name', frozen: false },
+    {field: 'created_at', header: 'Created at', frozen: false},
+    {field: 'updated_at', header: 'Updated at', frozen: false},
+  { field: 'company.name', header: 'Company Name', frozen: false },
+  { field: 'status.name', header: 'Status Name', frozen: false },
+];
+const getNestedValue = (obj, path) => {
+  return path.split('.').reduce((value, key) => value && value[key], obj);
+};
 
 
 const prueba = ref({revisar: 'revisar GET-POST-PUT-DELETE'});
@@ -319,15 +286,18 @@ const clearFilter = () => {
 const initFilters = () => {
     filters.value = {
         global: { value: null, matchMode: FilterMatchMode.CONTAINS },
-        code: { operator: FilterOperator.AND, constraints: [{ value: null, matchMode: FilterMatchMode.STARTS_WITH }] },
-        name: { operator: FilterOperator.AND, constraints: [{ value: null, matchMode: FilterMatchMode.STARTS_WITH }] },
-        'status.name': { operator: FilterOperator.AND, constraints: [{ value: null, matchMode: FilterMatchMode.STARTS_WITH }] },
-        'farm.name': { operator: FilterOperator.AND, constraints: [{ value: null, matchMode: FilterMatchMode.STARTS_WITH }] },
-        'company.name': { operator: FilterOperator.AND, constraints: [{ value: null, matchMode: FilterMatchMode.STARTS_WITH }] },
-        created_at: { operator: FilterOperator.AND, constraints: [{ value: null, matchMode: FilterMatchMode.STARTS_WITH }] },
-        updated_at: { operator: FilterOperator.AND, constraints: [{ value: null, matchMode: FilterMatchMode.STARTS_WITH }] }
     };
+    dynamicColumns.forEach((col) => {
+    filters.value[col.field] = {
+      operator: FilterOperator.AND,
+      constraints: [{ value: null, matchMode: FilterMatchMode.STARTS_WITH }]
+    };
+    });   
 };
+// Dynamically create globalFilterFields based on dynamicColumns
+const globalFilter = computed(() => {
+  return dynamicColumns.map(col => col.field);
+});
 
 const documentFrozen = ref(false);
 const readAll = async () => {
@@ -339,6 +309,8 @@ const readAll = async () => {
     const respFarms = await InitialDataService.getBranches();
     if (!respFarms.ok) toast.add({ severity: 'error', detail: 'Error' + respFarms.error, life: 3000 });
     Farms.value = respFarms.data.data.map((farm) => ({ id: farm.uuid, name: farm.name }));
+    
+    
 
     const respCompan = await InitialDataService.getCompanies();
     if (!respCompan.ok) toast.add({ severity: 'error', detail: 'Error' + respCompan.error, life: 3000 });
@@ -361,21 +333,23 @@ const {
     errors: errorsNew,
     defineField,
     resetForm
-} = useForm({initialValues: { name: '', codeV: '',farm:{ id: '', name: '' }, company:{ id: '', name: '' }},
+} = useForm({
     validationSchema: toTypedSchema(
         z.object({
             name: z.string().min(4),
             codeV: z.string().min(4),
-            farm: z
+            farmV: z
                 .object({
-                    name: z.string().min(4),
-                    id: z.string().min(4)
+                    id: z.string().min(4),
+                    name: z.string().min(4)
+                    
                 })
                 .optional(),
             company: z
                 .object({
-                    name: z.string().min(4),
-                    id: z.string().min(4)
+                    id: z.string().min(4),
+                    name: z.string().min(4)
+                    
                 })
                 .optional()
         })
@@ -383,7 +357,7 @@ const {
 });
 const [name, nameProps] = defineField('name');
 const [codeV, codeVProps] = defineField('codeV');
-const [farm] = defineField('farm');
+const [farmV] = defineField('farmV');
 const [company] = defineField('company');
 
 const extenciones = ref([{ name: 'CSV' }, { name: 'XLS' }]);
@@ -414,7 +388,8 @@ const openDialog = (mode) => {
         name.value = nombre;
         codeV.value = code;
         company.value = { id: empresa.uuid, name: empresa.name };
-        farm.value = { id: farmParameter.uuid, name: farmParameter.name };
+        farmV.value = { id: farmParameter.uuid, name: farmParameter.name };
+        
     }
 
     formDialog.value = true;
@@ -438,7 +413,7 @@ const actionRecordManager = handleSubmitNew(async (values) => {
         code: values.codeV,
         name: values.name,
         company_uuid: values.company ? values.company.id : companyDefault,
-        farm_uuid: values.farm ? values.farm.id : farmDefault
+        farm_uuid: values.farmV ? values.farmV.id : farmDefault
     };
 
     // Verifica si es un nuevo registro o si es edición/duplicado
@@ -533,7 +508,9 @@ const remove = (aver) => {
     }
 };
 
-const searchCompannies = (event) => {
+
+
+const searchCompanies = (event) => {
     setTimeout(() => {
         if (!event.query.trim().length) {
             compa.value = [...Compan.value];
@@ -544,7 +521,7 @@ const searchCompannies = (event) => {
         }
     }, 200);
 };
-const searchFarms = (event) => {
+const searchBranches = (event) => {
     setTimeout(() => {
         if (!event.query.trim().length) {
             farms.value = [...Farms.value];
@@ -554,6 +531,8 @@ const searchFarms = (event) => {
             });
         }
     }, 200);
+
+    
 };
 
 </script>
